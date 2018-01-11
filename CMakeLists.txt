@@ -3,6 +3,8 @@ cmake_minimum_required(VERSION 2.8)
 
 project( threadDetect )
 
+add_definitions(-std=c++0x)
+
 find_package( OpenCV REQUIRED )
 
 # To use OpenCV headers
