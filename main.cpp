@@ -6,13 +6,25 @@
 using namespace cv;
 int main(int argc, char** argv)
 {
-	if (argc == 1){
+	int dataStart = 1;	// current parameter pos
+	bool debugMode = false;	// whether launch debug mode
+
+	// -d param: launch debug mode(write debug images)
+	if (std::string(argv[dataStart]) == "-d"){
+		std::cout << "Launch debug mode." << std::endl;
+		debugMode = true; ++dataStart;
+	}
+
+	// check detect images are exist.
+	if (argc == dataStart){
 		std::cout << "Please set imageName as cmd parameter." << std::endl;
 		return -1;
 	}
-	for(int i=1; i<argc; ++i){
-		std::cout << argv[i] << std::endl;
-		CThreadDetector detector(argv[i]);
+
+	// start detection for each images
+	for(; dataStart<argc; ++dataStart){
+		std::cout << argv[dataStart] << std::endl;
+		CThreadDetector detector(argv[dataStart], debugMode);
 		detector.Detect();
 	}
 	return 0;

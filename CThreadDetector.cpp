@@ -3,8 +3,15 @@
 #include <iomanip>
 #include <numeric>
 
-CThreadDetector::CThreadDetector(const std::string pImageName){
+CThreadDetector::CThreadDetector(const std::string pImageName, bool pIsDebugMode){
 	mProcessImage = cv::imread(pImageName);
+	mIsDebugMode = pIsDebugMode;
+	const std::string::size_type dotPos = pImageName.find(".");
+	if(!mIsDebugMode) return;
+	if(dotPos == std::string::npos)
+		mImageFileName = pImageName;
+	else
+		mImageFileName = pImageName.substr(0, dotPos);
 }
 
 bool CThreadDetector::Detect(){
@@ -16,7 +23,11 @@ bool CThreadDetector::Detect(){
 	procImage.convertTo(procImage, CV_8UC1);
 	processor.Filter3x3(procImage, procImage, (cv::Mat_<float>(3, 3) << -1, -1, -1, 0, 0, 0, 1, 1, 1));
 	processor.BinalyzePTile(procImage, procImage, binalyzeRate);
+	if (mIsDebugMode)
+		 cv::imwrite("debug/" + mImageFileName + "#1.bmp", procImage);
 	processor.LaberingMaxSize(procImage, procImage);
+	if (mIsDebugMode)
+		 cv::imwrite("debug/" + mImageFileName + "#2.bmp", procImage);
 	// ƒf[ƒ^‚ª‚ ‚é‚Ì‚ð”’‰æ‘f‚Æ‚·‚é
 	return CheckThread(procImage, binalyzeRate);
 }
@@ -24,15 +35,20 @@ bool CThreadDetector::Detect(){
 bool CThreadDetector::CheckThread(const cv::Mat& pBinaryImage, const float pDefRate){
 	const cv::Size imageSizeData = pBinaryImage.size();
 	const float size = static_cast<float>(imageSizeData.width * imageSizeData.height);
+	// for debug image(write rotated thread)
+	cv::Mat debugImage;
+	if(mIsDebugMode)
+		debugImage = cv::Mat(imageSizeData, CV_8UC1, cv::Scalar(255));
+
 	std::vector<cv::Point> nonZeroList;
 	cv::findNonZero(pBinaryImage, nonZeroList);
 	const float blackNum = static_cast<float>(nonZeroList.size());
-	const float blackRate = 1.f - blackNum / size;
-	std::cout << "decreaseRate: " << std::setprecision(3) << blackRate*100.f << "% require: 50%" << std::endl;
-	if (blackRate < 0.5){
+	const float blackRate = (blackNum / size) / pDefRate;
+	std::cout << "decreaseRate: " << std::setprecision(3) << blackRate*100.f << "% require: 20%" << std::endl;
+	/*if (blackRate < 0.2){
 		std::cout << "      result: NG" << std::endl;
 		return false;
-	}
+	}*/
 
 	cv::Point2f sidePoints[2];
 	for (int x = 0; x < imageSizeData.width; ++x){
@@ -63,13 +79,22 @@ bool CThreadDetector::CheckThread(const cv::Mat& pBinaryImage, const float pDefR
 		blackRect[0].y = check.y < blackRect[0].y ? check.y : blackRect[0].y;
 		blackRect[1].x = check.x > blackRect[1].x ? check.x : blackRect[1].x;
 		blackRect[1].y = check.y > blackRect[1].y ? check.y : blackRect[1].y;
+		// write debug image
+		if(!mIsDebugMode) continue;
+		const cv::Point2i dp(check);
+		std::cout << dp;
+		if(dp.x<0 || dp.x>=imageSizeData.height) continue;
+		if(dp.y<0 || dp.y>=imageSizeData.width) continue;
+		debugImage.at<uchar>(dp.y, dp.x) = 0;
 	}
+	if (mIsDebugMode)
+		 cv::imwrite("debug/" + mImageFileName + "#3.bmp", debugImage);
 	const cv::Point2f len = blackRect[1] - blackRect[0];
 	const float ratio = len.x > len.y ? len.x / len.y : len.y / len.x;
 	std::cout << "   convRange: " << std::setprecision(7) << len << std::endl;
 	std::cout << "       ratio: " << std::setprecision(3) << ratio
 		<< ", require: >=5" << std::endl;
-	if (ratio < 5){
+	if (ratio < 5 || blackRate < 0.2f){
 		std::cout << "      result: NG" << std::endl;
 		return false;
 	}
