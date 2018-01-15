@@ -10,7 +10,10 @@ int main(int argc, char** argv)
 		std::cout << "Please set imageName as cmd parameter." << std::endl;
 		return -1;
 	}
-	CThreadDetector detector(argv[1]);
-	detector.Detect();
+	for(int i=1; i<argc; ++i){
+		std::cout << argv[i] << std::endl;
+		CThreadDetector detector(argv[i]);
+		detector.Detect();
+	}
 	return 0;
 }
