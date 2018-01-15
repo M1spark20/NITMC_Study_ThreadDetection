@@ -82,7 +82,6 @@ bool CThreadDetector::CheckThread(const cv::Mat& pBinaryImage, const float pDefR
 		// write debug image
 		if(!mIsDebugMode) continue;
 		const cv::Point2i dp(check);
-		std::cout << dp;
 		if(dp.x<0 || dp.x>=imageSizeData.height) continue;
 		if(dp.y<0 || dp.y>=imageSizeData.width) continue;
 		debugImage.at<uchar>(dp.y, dp.x) = 0;
