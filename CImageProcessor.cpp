@@ -171,10 +171,9 @@ void CImageProcessor::LaberingMaxSize(const cv::Mat& pSrcImage, cv::Mat& pDstIma
 		// type convert to CV_16UC1 and saturate to 2^16
 		replacePos.convertTo(replacePos, CV_32SC1);
 		// ラベル番号の差し替え
-		// 既存のラベルデータから変更部分のラベル番号を0にする
-		labelMat = labelMat.mul(cv::Scalar(1) - replacePos);
-		// 変更部分のラベルデータをラベルデータに上乗せする
-		labelMat += labelMat.mul(replacePos, tempLabel[moveDir]);
+		// (2018/01/16)Substract larger number from difference of larger and smaller
+		// to make them smaller number. replacePos works as a matrix mask.
+		labelMat -= (tempLabel[1-moveDir]-tempLabel[moveDir])*replacePos;
 
 		// ラベル数の加算
 		labelCounter[tempLabel[moveDir] - 1] += labelCounter[tempLabel[1 - moveDir] - 1];

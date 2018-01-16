@@ -6,24 +6,16 @@
 
 #IncludeRegexTransform: 
 
-/home/pi/git/NITMC_Study_ThreadDetection/CImageProcessor.hpp
-opencv2/opencv.hpp
--
-
-/home/pi/git/NITMC_Study_ThreadDetection/CThreadDetector.cpp
-CThreadDetector.hpp
-/home/pi/git/NITMC_Study_ThreadDetection/CThreadDetector.hpp
+/home/pi/git/NITMC_Study_ThreadDetection/CImageProcessor.cpp
 CImageProcessor.hpp
 /home/pi/git/NITMC_Study_ThreadDetection/CImageProcessor.hpp
-iomanip
+array
 -
-numeric
+fstream
 -
 
-/home/pi/git/NITMC_Study_ThreadDetection/CThreadDetector.hpp
+/home/pi/git/NITMC_Study_ThreadDetection/CImageProcessor.hpp
 opencv2/opencv.hpp
--
-string
 -
 
 /usr/local/include/opencv/cxcore.h
