@@ -52,15 +52,17 @@ bool CThreadDetector::CheckThread(const cv::Mat& pBinaryImage, const float pDefR
 
 	cv::Point2f sidePoints[2];
 	for (int x = 0; x < imageSizeData.width; ++x){
-		if (CheckSegment(pBinaryImage.col(x)) < 0) continue;
+		const float yPos = CheckSegment(pBinaryImage.col(x));
+		if (yPos < 0) continue;
 		sidePoints[0].x = static_cast<float>(x);
-		sidePoints[0].y = CheckSegment(pBinaryImage.col(x));
+		sidePoints[0].y = yPos;
 		break;
 	}
 	for (int x = imageSizeData.width-1; x >= 0; --x){
-		if (CheckSegment(pBinaryImage.col(x)) < 0) continue;
+		const float yPos = CheckSegment(pBinaryImage.col(x));
+		if (yPos < 0) continue;
 		sidePoints[1].x = static_cast<float>(x);
-		sidePoints[1].y = CheckSegment(pBinaryImage.col(x));
+		sidePoints[1].y = yPos;
 		break;
 	}
 
@@ -71,14 +73,18 @@ bool CThreadDetector::CheckThread(const cv::Mat& pBinaryImage, const float pDefR
 	std::cout << "        line: " << sidePoints[0] << " - " << sidePoints[1]
 		<< " / angle(deg): " << wholeAngle * 180.f / CV_PI << std::endl;
 
-	cv::Point2f blackRect[2] = { nonZeroList[0], nonZeroList[0] };
-	for (std::vector<cv::Point>::iterator it = nonZeroList.begin()+1; it != nonZeroList.end(); ++it){
+	cv::Point2f blackRect[2];
+	for (std::vector<cv::Point>::iterator it = nonZeroList.begin(); it != nonZeroList.end(); ++it){
 		const cv::Mat roundedPos = 	affineMat * (cv::Mat_<float>(2,1) << it->x, it->y);
 		const cv::Point2f check(roundedPos.at<float>(0), roundedPos.at<float>(1));
-		blackRect[0].x = check.x < blackRect[0].x ? check.x : blackRect[0].x;
-		blackRect[0].y = check.y < blackRect[0].y ? check.y : blackRect[0].y;
-		blackRect[1].x = check.x > blackRect[1].x ? check.x : blackRect[1].x;
-		blackRect[1].y = check.y > blackRect[1].y ? check.y : blackRect[1].y;
+		if (it == nonZeroList.begin()){
+			blackRect[0] = check; blackRect[1] = check;
+		} else {
+			blackRect[0].x = check.x < blackRect[0].x ? check.x : blackRect[0].x;
+			blackRect[0].y = check.y < blackRect[0].y ? check.y : blackRect[0].y;
+			blackRect[1].x = check.x > blackRect[1].x ? check.x : blackRect[1].x;
+			blackRect[1].y = check.y > blackRect[1].y ? check.y : blackRect[1].y;
+		}
 		// write debug image
 		if(!mIsDebugMode) continue;
 		const cv::Point2i dp(check);
