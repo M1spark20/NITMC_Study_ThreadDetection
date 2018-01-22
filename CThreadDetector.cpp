@@ -104,9 +104,9 @@ bool CThreadDetector::CheckThread(const cv::Mat& pBinaryImage, const float pDefR
 }
 
 float CThreadDetector::CheckSegment(const cv::Mat& pRowData){
+	if(cv::countNonZero(pRowData) == 0) return -1.f;
 	std::vector<cv::Point> segmentNonZero;
 	cv::findNonZero(pRowData, segmentNonZero);
-	if (segmentNonZero.empty()) return -1.f;
 	const float test = std::accumulate(segmentNonZero.begin(), segmentNonZero.end(),
 		cv::Point(0, 0)).y / static_cast<float>(segmentNonZero.size());
 	return test;
