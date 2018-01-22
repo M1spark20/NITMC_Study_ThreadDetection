@@ -5,6 +5,7 @@
 class CThreadDetector{
 	cv::Mat mProcessImage;
 	std::string mImageFileName;
+	const std::string mcDebugFolder = "debugImg/";
 	bool mIsDebugMode;
 	bool CheckThread(const cv::Mat& pBinaryImage, const float pDefRate);
 	float CheckSegment(const cv::Mat& pRowData);

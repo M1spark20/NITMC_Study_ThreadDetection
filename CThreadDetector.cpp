@@ -24,10 +24,10 @@ bool CThreadDetector::Detect(){
 	processor.Filter3x3(procImage, procImage, (cv::Mat_<float>(3, 3) << -1, -1, -1, 0, 0, 0, 1, 1, 1));
 	processor.BinalyzePTile(procImage, procImage, binalyzeRate);
 	if (mIsDebugMode)
-		 cv::imwrite("debug/" + mImageFileName + "#1.bmp", procImage);
+		 cv::imwrite(mcDebugFolder + mImageFileName + "#1.bmp", procImage);
 	processor.LaberingMaxSize(procImage, procImage);
 	if (mIsDebugMode)
-		 cv::imwrite("debug/" + mImageFileName + "#2.bmp", procImage);
+		 cv::imwrite(mcDebugFolder + mImageFileName + "#2.bmp", procImage);
 	// ƒf[ƒ^‚ª‚ ‚é‚Ì‚ð”’‰æ‘f‚Æ‚·‚é
 	return CheckThread(procImage, binalyzeRate);
 }
@@ -82,12 +82,12 @@ bool CThreadDetector::CheckThread(const cv::Mat& pBinaryImage, const float pDefR
 		// write debug image
 		if(!mIsDebugMode) continue;
 		const cv::Point2i dp(check);
-		if(dp.x<0 || dp.x>=imageSizeData.height) continue;
-		if(dp.y<0 || dp.y>=imageSizeData.width) continue;
-		debugImage.at<uchar>(dp.y, dp.x) = 0;
+		if(dp.x<0 || dp.x>=imageSizeData.width) continue;
+		if(dp.y+50<0 || dp.y+50>=imageSizeData.height) continue;
+		debugImage.at<uchar>(dp.y+50, dp.x) = 0;
 	}
 	if (mIsDebugMode)
-		 cv::imwrite("debug/" + mImageFileName + "#3.bmp", debugImage);
+		 cv::imwrite(mcDebugFolder + mImageFileName + "#3.bmp", debugImage);
 	const cv::Point2f len = blackRect[1] - blackRect[0];
 	const float ratio = len.x > len.y ? len.x / len.y : len.y / len.x;
 	const float distance = static_cast<float>(cv::norm(sidePoints[1] - sidePoints[0]));
