@@ -90,9 +90,16 @@ bool CThreadDetector::CheckThread(const cv::Mat& pBinaryImage, const float pDefR
 		 cv::imwrite("debug/" + mImageFileName + "#3.bmp", debugImage);
 	const cv::Point2f len = blackRect[1] - blackRect[0];
 	const float ratio = len.x > len.y ? len.x / len.y : len.y / len.x;
+	const float distance = static_cast<float>(cv::norm(sidePoints[1] - sidePoints[0]));
+	const float expectThick = static_cast<float>(nonZeroList.size()) / distance;
+	const float realThick = len.x > len.y ? len.y : len.x;
+	const float thickRatio = realThick / expectThick;
 	std::cout << "   convRange: " << std::setprecision(7) << len << std::endl;
 	std::cout << "       ratio: " << std::setprecision(3) << ratio
 		<< ", require: >=5" << std::endl;
+	std::cout << "    distance: " << std::setprecision(5) << distance << " /";
+	std::cout << " thick: " << "[" << expectThick << ", " << realThick << "]" << std::endl;
+	std::cout << "  thickRatio: " << std::setprecision(3) << thickRatio << std::endl;
 	if (ratio < 5 || blackRate < 0.2f){
 		std::cout << "      result: NG" << std::endl;
 		return false;
