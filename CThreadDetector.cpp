@@ -3,6 +3,9 @@
 #include <iomanip>
 #include <numeric>
 
+// external initializer for constant string member; mcDebugFolder.
+const std::string CThreadDetector::mcDebugFolder = "debugImage/";
+
 CThreadDetector::CThreadDetector(const std::string pImageName, bool pIsDebugMode){
 	mProcessImage = cv::imread(pImageName);
 	mIsDebugMode = pIsDebugMode;
