@@ -1,5 +1,6 @@
 #include "CThreadDetector.hpp"
 #include "CImageProcessor.hpp"
+#include "CTimeMeasure.hpp"
 #include <iomanip>
 #include <numeric>
 
@@ -21,18 +22,40 @@ bool CThreadDetector::Detect(){
 	if (mProcessImage.empty()) return false;
 	CImageProcessor processor;
 	cv::Mat procImage;
+	CTimeMeasure timeManager;
 	const float binalyzeRate = 0.03f;
+	if(mIsDebugMode) timeManager.StartInput();
+
 	cv::cvtColor(mProcessImage, procImage, CV_RGB2GRAY);
 	procImage.convertTo(procImage, CV_8UC1);
+	if(mIsDebugMode) timeManager.StartInput();
+
 	processor.Filter3x3(procImage, procImage, (cv::Mat_<float>(3, 3) << -1, -1, -1, 0, 0, 0, 1, 1, 1));
+	if (mIsDebugMode) timeManager.GoToNextSection("Y-Prewitt Filter Time");
+
 	processor.BinalyzePTile(procImage, procImage, binalyzeRate);
-	if (mIsDebugMode)
-		 cv::imwrite(mcDebugFolder + mImageFileName + "#1.bmp", procImage);
+
+	if (mIsDebugMode){
+		timeManager.GoToNextSection("P-Tile Time");
+		cv::imwrite(mcDebugFolder + mImageFileName + "#1.bmp", procImage);
+		timeManager.GoToNextSection("");
+	}
+
 	processor.LaberingMaxSize(procImage, procImage);
-	if (mIsDebugMode)
-		 cv::imwrite(mcDebugFolder + mImageFileName + "#2.bmp", procImage);
+	if (mIsDebugMode){
+		timeManager.GoToNextSection("Labeling Time");
+		cv::imwrite(mcDebugFolder + mImageFileName + "#2.bmp", procImage);
+		timeManager.GoToNextSection("");
+	}
+
 	// ƒf[ƒ^‚ª‚ ‚é‚Ì‚ð”’‰æ‘f‚Æ‚·‚é
-	return CheckThread(procImage, binalyzeRate);
+	bool ans = CheckThread(procImage, binalyzeRate);
+	if (mIsDebugMode){
+		timeManager.GoToNextSection("Detecting Time");
+		timeManager.WriteResult();
+	}
+	std::cout << "\n";
+	return ans;
 }
 
 bool CThreadDetector::CheckThread(const cv::Mat& pBinaryImage, const float pDefRate){
@@ -99,14 +122,17 @@ bool CThreadDetector::CheckThread(const cv::Mat& pBinaryImage, const float pDefR
 		 cv::imwrite(mcDebugFolder + mImageFileName + "#3.bmp", debugImage);
 	const cv::Point2f len = blackRect[1] - blackRect[0];
 	const float ratio = len.x > len.y ? len.x / len.y : len.y / len.x;
-	const float distance = static_cast<float>(cv::norm(sidePoints[1] - sidePoints[0]));
-	const float expectThick = static_cast<float>(nonZeroList.size()) / distance;
+	//const float distance = static_cast<float>(cv::norm(sidePoints[1] - sidePoints[0]));
+	//const float expectThick = static_cast<float>(nonZeroList.size()) / distance;
+	// 20180131 refact distance: norm->longer length of square (almost equal, norm > longer)
+	// equally thick =  shorter / (num of black dot / longer)
+	const float expectThick = static_cast<float>(nonZeroList.size()) / (len.x > len.y ? len.x : len.y);
 	const float realThick = len.x > len.y ? len.y : len.x;
-	const float thickRatio = realThick / expectThick;
+	const float thickRatio = len.x * len.y / static_cast<float>(nonZeroList.size());
 	std::cout << "   convRange: " << std::setprecision(7) << len << std::endl;
 	std::cout << "       ratio: " << std::setprecision(3) << ratio
 		<< ", require: >=5" << std::endl;
-	std::cout << "    distance: " << std::setprecision(5) << distance << " /";
+	std::cout << "    blackNum: " << std::setprecision(5) << nonZeroList.size() << " /";
 	std::cout << " thick: " << "[" << expectThick << ", " << realThick << "]" << std::endl;
 	std::cout << "  thickRatio: " << std::setprecision(3) << thickRatio << std::endl;
 	if (ratio < 5 || blackRate < 0.2f){

@@ -1,1 +1,0 @@
-/home/pi/git/NITMC_Study_ThreadDetection/build/CMakeFiles/threadDetect.dir

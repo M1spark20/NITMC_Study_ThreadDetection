@@ -100,7 +100,8 @@ void CImageProcessor::BinalyzePTile(const cv::Mat& pSrcImage, cv::Mat& pDstImage
 	for (int th = 255; th >= 0; --th){
 		bCheck += static_cast<int>( hist.at<float>(th) );
 		if (bCheck - order >= 0){
-			std::cout << order << ", " << bCheck << ", " << th << std::endl;
+			std::cout << "Image Size: " << s.width << " * " << s.height << "\n";
+			std::cout << "Pixels Purpose: " << order << ", Black Pixels: " << bCheck << ", Threshold: " << th << "\n";
 			BinalyzeThreshold(processData, pDstImage, th);
 			return;
 		}

@@ -1,9 +1,12 @@
 # generated at 13:41:26 2017/12/19
-cmake_minimum_required(VERSION 2.8)
+# modified at 14:04:32 2018/04/17 which is for using C++11
+
+cmake_minimum_required(VERSION 3.1)
 
 project( threadDetect )
 
-add_definitions(-std=c++0x)
+# add_definitions(-std=c++0x)
+set (CMAKE_CXX_STANDARD 11)
 
 find_package( OpenCV REQUIRED )
 
