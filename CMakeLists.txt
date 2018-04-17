@@ -18,6 +18,7 @@ add_executable( threadDetect
 	main.cpp
 	CImageProcessor.cpp
 	CThreadDetector.cpp
+	CTimeMeasure.cpp
 )
 
 #To use OpenCV static libraries
