@@ -117,13 +117,14 @@ void CImageProcessor::LaberingMaxSize(const cv::Mat& pSrcImage, cv::Mat& pDstIma
 	const int scale = s.width * s.height;
 
 	// 変数定義
-	cv::Mat labelMat(s.height + 1, s.width + 1, CV_32SC1, cv::Scalar(0));
 	cv::Mat processData(s.height + 1, s.width + 1, CV_8UC1, cv::Scalar(255));
-	/* 初期値として元画像をコピー */{
+	/* 初期値として元画像をコピー : オーバーフロー防止 */{
 		cv::Mat temp = processData(cv::Rect(1, 1, s.width, s.height));
 		CopyMatRect(pSrcImage, processData,
 			cv::Rect(0, 0, s.width, s.height), cv::Rect(1, 1, s.width, s.height));
 	}
+
+	LabelData labelData;
 	std::vector<int> labelCounter;
 	// labelNo, labelCount
 	std::pair<int, int> maxLabel;
@@ -131,71 +132,86 @@ void CImageProcessor::LaberingMaxSize(const cv::Mat& pSrcImage, cv::Mat& pDstIma
 	// メイン処理
 	std::vector<cv::Point> nonZeroList;
 	cv::findNonZero(cv::Scalar(255) - processData, nonZeroList);
+	labelCounter.reserve(nonZeroList.size());
+
 	//std::cout << nonZeroList.size() << ", " << scale << std::endl;
 	for (std::vector<cv::Point>::iterator it = nonZeroList.begin(); it != nonZeroList.end(); ++it){
-		int *const pDataPtr = &labelMat.at<int>(*it);
-		const int tempLabel[] = {
-			labelMat.at<int>(*it - cv::Point(1,0)), labelMat.at<int>(*it - cv::Point(0,1))
-		};
+		int putData = 0;
+		int tempLabel[] = { 0, 0 };
+		/* tempLabelの設定 */{
+			auto nextIt = FindLabelRelative(labelData, *it - cv::Point(1, 0));
+			if (nextIt != labelData.rend()) tempLabel[0] = nextIt->second;
+			nextIt = FindLabelRelative(labelData, *it - cv::Point(0, 1));
+			if (nextIt != labelData.rend()) tempLabel[1] = nextIt->second;
+		}
+		
 		//std::cout << "(" << tempLabel[0] << ", " << tempLabel[1] << ") " << *it << " " << (int)*pDataPtr << " " ;
 		// 参照画素の左、上ともラベルが付いていない(=0)の場合:
 		// 新規ラベル番号を付与する
 		if (tempLabel[0] == 0 && tempLabel[1] == 0){
-			labelCounter.push_back(1);
-			*pDataPtr = (int)labelCounter.size();
-			if (maxLabel.second == 0)
-				maxLabel = std::pair<int, int>(labelCounter.size(), 1);
-			continue;
+			labelCounter.push_back(0);
+			putData = labelCounter.size();
 		}
 		// 参照画素の左、上のラベルが同じ or いずれかが付いていない場合:
 		// ついていた番号を付与
-		if (tempLabel[0] == tempLabel[1] || !tempLabel[0] || !tempLabel[1]) {
+		else if (tempLabel[0] == tempLabel[1] || !tempLabel[0] || !tempLabel[1]) {
 			const int setPos = tempLabel[0] ? 0 : 1;
-			*pDataPtr = tempLabel[setPos];
-			const int nowCount = ++labelCounter[tempLabel[setPos] - 1];
-			maxLabel = maxLabel.second < nowCount ?
-				std::pair<int, int>(tempLabel[setPos], nowCount) : maxLabel;
-			continue;
+			putData = tempLabel[setPos];
 		}
 
 		// 参照画素の左、上に別々のラベルが付いていた場合:
 		// ラベル番号を小さい方に合わせる
-		const int moveDir = tempLabel[0] < tempLabel[1] ? 0 : 1;
-		*pDataPtr = tempLabel[moveDir];
-
-		// ラベル番号を差し替えるラベル位置を付与
-		// compare elements (if true, set to 255, CV_8U) -> 0or1
-		cv::Mat replacePos;
-		cv::compare(labelMat, tempLabel[1 - moveDir], replacePos, CV_CMP_EQ);
-		replacePos /= 255;
-
-		// type convert to CV_16UC1 and saturate to 2^16
-		replacePos.convertTo(replacePos, CV_32SC1);
-		// ラベル番号の差し替え
-		// (2018/01/16)Substract larger number from difference of larger and smaller
-		// to make them smaller number. replacePos works as a matrix mask.
-		labelMat -= (tempLabel[1-moveDir]-tempLabel[moveDir])*replacePos;
+		else {
+			const int moveDir = tempLabel[0] < tempLabel[1] ? 0 : 1;
+			putData = tempLabel[moveDir];
+			RefreshLabel(labelData, tempLabel[1 - moveDir], tempLabel[moveDir], labelCounter);
+		}
 
 		// ラベル数の加算
-		labelCounter[tempLabel[moveDir] - 1] += labelCounter[tempLabel[1 - moveDir] - 1];
-		labelCounter[tempLabel[1 - moveDir] - 1] = 0;
-		const int nowCount = ++labelCounter[tempLabel[moveDir] - 1];
+		const int nowCount = ++labelCounter[putData - 1];
 		maxLabel = maxLabel.second < nowCount ?
-			std::pair<int, int>(tempLabel[moveDir], nowCount) : maxLabel;
+			std::pair<int, int>(putData, nowCount) : maxLabel;
+		labelData.push_back(std::pair<cv::Point, int>(*it, putData));
 	}
-	//for(int i=0; i<labelCounter.size(); ++i)
-	//	std::cout << labelCounter[i] << ", ";
-	/*std::ofstream ofs("sift.csv");
-	ofs << cv::format(out, "csv") << std::endl;*/
 
-	// 端点処理部分除去
-	cv::Mat out(labelMat, cv::Rect(1, 1, s.width, s.height));
-	// compare elements (if true, set to 255, CV_8U)
-	out = out == (maxLabel.first);
-	out.convertTo(out, CV_8UC1);
-	out.copyTo(pDstImage);
+	// 端点処理部分を除去した画像を保存
+	cv::Mat out(s.height, s.width, CV_8UC1, cv::Scalar(255));
+	for (auto data : labelData){
+		if (data.second != maxLabel.first) continue;
+		out.at<unsigned char>(data.first - cv::Point(1, 1)) = 0;	// Black: thread data
+	}
+	/*std::ofstream ofs("sift.csv");
+	ofs << cv::format(label, "csv") << std::endl;*/
+	out = cv::Scalar(255) - out;
+	out.convertTo(pDstImage, CV_8UC1);
 }
+
 // ((false: 縮小 / true: 拡大 | vector配列で指定)
 /*cv::Mat CImageProcessor::MinimizeExtend(const cv::Mat pBinaryImage, std::queue<bool> pJob){
 	return cv::Mat();
 }*/
+
+// [act]LabelDataが整列されていると仮定して、FindForを対象としたマスがdataに存在するか検索する
+//		reverse_iteratorを使用することで比較回数の削減を目指す。
+// [prm]data	: 比較対象データ
+//		findFor	: 探す位置
+// [ret]データの存在位置 : 存在しない場合はrend()
+std::vector<std::pair<cv::Point, int>>::reverse_iterator CImageProcessor::FindLabelRelative(LabelData& data, cv::Point findFor){
+	for (auto it = data.rbegin(); it != data.rend(); ++it){
+		if (it->first == findFor) return it;
+		if (it->first.x <= findFor.x && it->first.y <= findFor.y) break;
+	}
+	return data.rend();
+}
+
+void CImageProcessor::RefreshLabel(LabelData& data, int srcLabel, int dstLabel, std::vector<int>& pLabelCounter){
+	int count = 0;
+	for (auto& check : data){
+		if (check.second == srcLabel){
+			check.second = dstLabel;
+			if (++count == pLabelCounter[srcLabel - 1]) break;
+		}
+	}
+	pLabelCounter[dstLabel - 1] += pLabelCounter[srcLabel - 1];
+	pLabelCounter[srcLabel - 1] = 0;
+}

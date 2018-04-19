@@ -5,6 +5,8 @@
 
 class CImageProcessor{
 // [act]
+	typedef std::vector<std::pair<cv::Point, int>> LabelData;
+
 public:
 	// [機能]指定範囲のMatをコピーする
 	void CopyMatRect(const cv::Mat& pSrc, cv::Mat& pDst, const cv::Rect& pSrcRect, const cv::Rect& pDstRect);
@@ -18,4 +20,8 @@ public:
 	void LaberingMaxSize(const cv::Mat& pSrcImage, cv::Mat& pDstImage);
 	// 拡大縮小処理(false: 縮小 / true: 拡大 | vector配列で指定)
 	//cv::Mat MinimizeExtend(const cv::Mat pBinaryImage, std::queue<bool> pJob);
+
+private:
+	LabelData::reverse_iterator FindLabelRelative(LabelData& data, cv::Point findFor);
+	void RefreshLabel(LabelData& data, int srcLabel, int dstLabel, std::vector<int>& pLabelCounter);
 };
