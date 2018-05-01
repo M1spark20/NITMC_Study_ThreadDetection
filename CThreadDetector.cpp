@@ -1,34 +1,68 @@
 #include "CThreadDetector.hpp"
 #include "CImageProcessor.hpp"
 #include "CTimeMeasure.hpp"
+#include <fstream>
 #include <iomanip>
 #include <numeric>
 
 // external initializer for constant string member; mcDebugFolder.
 const std::string CThreadDetector::mcDebugFolder = "debugImage/";
 
-CThreadDetector::CThreadDetector(const std::string pImageName, bool pIsDebugMode){
-	mProcessImage = cv::imread(pImageName);
+CThreadDetector::CThreadDetector(const std::string pImageName, bool pIsDebugMode, bool pIsPhotoMode){
 	mIsDebugMode = pIsDebugMode;
+	mIsPhotoMode = pIsPhotoMode;
 	const std::string::size_type dotPos = pImageName.find(".");
-	if(!mIsDebugMode) return;
 	if(dotPos == std::string::npos)
 		mImageFileName = pImageName;
-	else
+	else {
 		mImageFileName = pImageName.substr(0, dotPos);
+		mExtension = pImageName.substr(dotPos);
+	}
+}
+
+// dstImage: CV_8UC1
+bool CThreadDetector::ReadImage(cv::Mat& dstImage){
+	if (mExtension == ".bgr"){
+		const int width = 640, height = 480, pixel = width*height, colorNum = 3;
+		std::ifstream ifs(mImageFileName + mExtension, std::ios::binary);
+		if (!ifs) return false;
+		dstImage = cv::Mat(height, width, CV_8UC3);
+		const int readSize = sizeof(*dstImage.data)*pixel*colorNum;
+		if(mIsDebugMode | mIsPhotoMode)
+			std::cout << ".bgr dataSize[byte]: " << readSize << std::endl;
+		ifs.read((char*)dstImage.data, readSize);
+		/*std::ofstream ofs("sift.csv");
+		ofs << cv::format(dstImage, "csv") << std::endl;*/
+	}
+	else {
+		dstImage = cv::imread(mImageFileName + mExtension);
+	}
+	cv::cvtColor(dstImage, dstImage, CV_RGB2GRAY);
+	dstImage.convertTo(dstImage, CV_8UC1);
+	return true;
 }
 
 bool CThreadDetector::Detect(){
-	if (mProcessImage.empty()) return false;
 	CImageProcessor processor;
 	cv::Mat procImage;
 	CTimeMeasure timeManager;
 	const float binalyzeRate = 0.03f;
-	if(mIsDebugMode) timeManager.StartInput();
+	if(mIsDebugMode | mIsPhotoMode) timeManager.StartInput();
 
-	cv::cvtColor(mProcessImage, procImage, CV_RGB2GRAY);
-	procImage.convertTo(procImage, CV_8UC1);
-	if(mIsDebugMode) timeManager.StartInput();
+	ReadImage(procImage);
+	if (procImage.empty()) return false;
+	if (mIsDebugMode | mIsPhotoMode){
+		timeManager.GoToNextSection("Read Image Time");
+		cv::imwrite(mcDebugFolder + mImageFileName + "#0.bmp", procImage);
+		timeManager.GoToNextSection("");
+	}
+
+	if (mIsPhotoMode) {
+		timeManager.WriteResult();
+		cv::imshow("photoViewer : press any key to exit.", procImage);
+		cv::waitKey();
+		return true;
+	}
 
 	processor.Filter3x3(procImage, procImage, (cv::Mat_<float>(3, 3) << -1, -1, -1, 0, 0, 0, 1, 1, 1));
 	if (mIsDebugMode) timeManager.GoToNextSection("Y-Prewitt Filter Time");

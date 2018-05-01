@@ -8,11 +8,16 @@ int main(int argc, char** argv)
 {
 	int dataStart = 1;	// current parameter pos
 	bool debugMode = false;	// whether launch debug mode
+	bool photoMode = false;
 
 	// -d param: launch debug mode(write debug images)
-	if (std::string(argv[dataStart]) == "-d"){
+	const std::string arg1(argv[dataStart]);
+	if (arg1 == "-d"){
 		std::cout << "Launch debug mode." << std::endl;
 		debugMode = true; ++dataStart;
+	} else if (arg1 == "-p"){
+		std::cout << "Launch photoView mode." << std::endl;
+		photoMode = true; ++dataStart;
 	}
 
 	// check detect images are exist.
@@ -24,7 +29,7 @@ int main(int argc, char** argv)
 	// start detection for each images
 	for(; dataStart<argc; ++dataStart){
 		std::cout << argv[dataStart] << std::endl;
-		CThreadDetector detector(argv[dataStart], debugMode);
+		CThreadDetector detector(argv[dataStart], debugMode, photoMode);
 		detector.Detect();
 	}
 	return 0;
