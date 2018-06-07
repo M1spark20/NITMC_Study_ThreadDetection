@@ -24,8 +24,8 @@ CThreadDetector::CThreadDetector(const std::string pImageName, bool pIsDebugMode
 // dstImage: CV_8UC1
 bool CThreadDetector::ReadImage(cv::Mat& dstImage){
 	if (mExtension == ".bgr"){
-		const int width  = 640 / mMinisizeImageFlag ? 2:1;
-		const int height = 480 / mMinisizeImageFlag ? 2:1;
+		const int width  = 640 / (mMinisizeImageFlag ? 2:1);
+		const int height = 480 / (mMinisizeImageFlag ? 2:1);
 		const int pixel = width*height, colorNum = 3;
 		std::ifstream ifs(mImageFileName + mExtension, std::ios::binary);
 		if (!ifs) return false;
