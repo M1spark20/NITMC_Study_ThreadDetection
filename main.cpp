@@ -7,8 +7,9 @@ using namespace cv;
 int main(int argc, char** argv)
 {
 	int dataStart = 1;	// current parameter pos
-	bool debugMode = false;	// whether launch debug mode
-	bool photoMode = false;
+	bool debugMode		 = false;	// whether launch debug mode
+	bool photoMode		 = false;
+	bool minisizeFlag	 = false;
 
 	// -d param: launch debug mode(write debug images)
 	const std::string arg1(argv[dataStart]);
@@ -27,10 +28,14 @@ int main(int argc, char** argv)
 	}
 
 	// start detection for each images
+	// read .bgr image as 320x240 if "-s" is set before each filenames.
 	for(; dataStart<argc; ++dataStart){
-		std::cout << argv[dataStart] << std::endl;
-		CThreadDetector detector(argv[dataStart], debugMode, photoMode);
+		const std::string data(argv[dataStart]);
+		if (data == "-s"){ minisizeFlag = true; continue; }
+		std::cout << data << std::endl;
+		CThreadDetector detector(data, debugMode, photoMode);
 		detector.Detect();
+		minisizeFlag = false;
 	}
 	return 0;
 }

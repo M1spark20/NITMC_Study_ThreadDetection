@@ -8,9 +8,10 @@
 // external initializer for constant string member; mcDebugFolder.
 const std::string CThreadDetector::mcDebugFolder = "debugImage/";
 
-CThreadDetector::CThreadDetector(const std::string pImageName, bool pIsDebugMode, bool pIsPhotoMode){
-	mIsDebugMode = pIsDebugMode;
-	mIsPhotoMode = pIsPhotoMode;
+CThreadDetector::CThreadDetector(const std::string pImageName, bool pIsDebugMode, bool pIsPhotoMode, bool pMinisizeFlag){
+	mIsDebugMode		= pIsDebugMode;
+	mIsPhotoMode		= pIsPhotoMode;
+	mMinisizeImageFlag	= pMinisizeFlag;
 	const std::string::size_type dotPos = pImageName.find(".");
 	if(dotPos == std::string::npos)
 		mImageFileName = pImageName;
@@ -23,7 +24,9 @@ CThreadDetector::CThreadDetector(const std::string pImageName, bool pIsDebugMode
 // dstImage: CV_8UC1
 bool CThreadDetector::ReadImage(cv::Mat& dstImage){
 	if (mExtension == ".bgr"){
-		const int width = 640, height = 480, pixel = width*height, colorNum = 3;
+		const int width  = 640 / mMinisizeImageFlag ? 2:1;
+		const int height = 480 / mMinisizeImageFlag ? 2:1;
+		const int pixel = width*height, colorNum = 3;
 		std::ifstream ifs(mImageFileName + mExtension, std::ios::binary);
 		if (!ifs) return false;
 		dstImage = cv::Mat(height, width, CV_8UC3);

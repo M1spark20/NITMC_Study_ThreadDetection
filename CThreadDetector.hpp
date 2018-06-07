@@ -9,10 +9,11 @@ class CThreadDetector{
 	static const std::string mcDebugFolder;
 	bool mIsDebugMode;
 	bool mIsPhotoMode;
+	bool mMinisizeImageFlag;
 	bool ReadImage(cv::Mat& dstImage);
 	bool CheckThread(const cv::Mat& pBinaryImage, const float pDefRate);
 	float CheckSegment(const cv::Mat& pRowData);
 public:
-	CThreadDetector(const std::string pImageName, bool pIsDebugMode, bool pIsPhotoMode);
+	CThreadDetector(const std::string pImageName, bool pIsDebugMode, bool pIsPhotoMode, bool pMinisizeFlag);
 	bool Detect();
 };
