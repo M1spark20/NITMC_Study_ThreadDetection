@@ -33,7 +33,7 @@ int main(int argc, char** argv)
 		const std::string data(argv[dataStart]);
 		if (data == "-s"){ minisizeFlag = true; continue; }
 		std::cout << data << std::endl;
-		CThreadDetector detector(data, debugMode, photoMode);
+		CThreadDetector detector(data, debugMode, photoMode, minisizeFlag);
 		detector.Detect();
 		minisizeFlag = false;
 	}
