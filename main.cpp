@@ -3,6 +3,8 @@
 #include <iostream>
 #include <opencv2/opencv.hpp>
 #include "CThreadDetector.hpp"
+#include "CReadConfig.hpp"
+
 using namespace cv;
 int main(int argc, char** argv)
 {
@@ -10,9 +12,23 @@ int main(int argc, char** argv)
 	bool debugMode		 = false;	// whether launch debug mode
 	bool photoMode		 = false;
 	bool minisizeFlag	 = false;
-
+	
+	if(argc == 1){
+		std::cout << "Please set config file path as 1st cmd parameter." << std::endl;
+		return -1;
+	}
+	
+	// コンフィグ読み込み
+	std::string arg1(argv[dataStart]);
+	CReadConfig config(arg1);
+	if(!config.readFile()){
+		std::cout << "Failed to read all configurations." << std::endl;
+		return -1;
+	}
+	++dataStart;
+	
 	// -d param: launch debug mode(write debug images)
-	const std::string arg1(argv[dataStart]);
+	arg1 = std::string(argv[dataStart]);
 	if (arg1 == "-d"){
 		std::cout << "Launch debug mode." << std::endl;
 		debugMode = true; ++dataStart;
@@ -33,7 +49,7 @@ int main(int argc, char** argv)
 		const std::string data(argv[dataStart]);
 		if (data == "-s"){ minisizeFlag = true; continue; }
 		std::cout << data << std::endl;
-		CThreadDetector detector(data, debugMode, photoMode, minisizeFlag);
+		CThreadDetector detector(data, debugMode, photoMode, minisizeFlag, config);
 		detector.Detect();
 		minisizeFlag = false;
 	}

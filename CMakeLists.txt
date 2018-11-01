@@ -1,5 +1,6 @@
 # generated at 13:41:26 2017/12/19
 # modified at 14:04:32 2018/04/17 which is for using C++11
+# modified at 13:49:20 2018/11/01 which is added CReadConfig.cpp
 
 cmake_minimum_required(VERSION 3.1)
 
@@ -19,6 +20,7 @@ add_executable( threadDetect
 	CImageProcessor.cpp
 	CThreadDetector.cpp
 	CTimeMeasure.cpp
+	CReadConfig.cpp
 )
 
 #To use OpenCV static libraries

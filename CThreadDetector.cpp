@@ -1,6 +1,7 @@
 #include "CThreadDetector.hpp"
 #include "CImageProcessor.hpp"
 #include "CTimeMeasure.hpp"
+#include "CReadConfig.hpp"
 #include <fstream>
 #include <iomanip>
 #include <numeric>
@@ -8,13 +9,28 @@
 // external initializer for constant string member; mcDebugFolder.
 const std::string CThreadDetector::mcDebugFolder = "debugImage/";
 
-CThreadDetector::CThreadDetector(const std::string pImageName, bool pIsDebugMode, bool pIsPhotoMode, bool pMinisizeFlag){
+// [act]Initialize CThreadDetector class with parameters and filename.
+//		Set flags and detect file name and extension.
+// [prm]pImageName		: set image's file name including the extension.
+//		pIsDebugMode	: whether set the debug mode.
+//		pIsPhotoMode	: whether set the photo view mode.
+//		pMinisizeFlag	: whether set the mini size flag (Only available with bgr image.)
+// [ret]None.
+CThreadDetector::CThreadDetector(const std::string pImageName, bool pIsDebugMode, bool pIsPhotoMode, bool pMinisizeFlag, const CReadConfig& pConfig) : 
+		c_binalyzeRate(pConfig.outputConfig(eBinalyzeThreshold)),
+		c_blackRate(pConfig.outputConfig(eBlackRate)),
+		c_squareRatio(pConfig.outputConfig(eSquareRatio)),
+		c_thickRatio(pConfig.outputConfig(eBendRate)){
+	// set flags
 	mIsDebugMode		= pIsDebugMode;
 	mIsPhotoMode		= pIsPhotoMode;
 	mMinisizeImageFlag	= pMinisizeFlag;
+	// check the extension
 	const std::string::size_type dotPos = pImageName.find(".");
+	// if extension is not found:
 	if(dotPos == std::string::npos)
 		mImageFileName = pImageName;
+	// if extension is found:
 	else {
 		mImageFileName = pImageName.substr(0, dotPos);
 		mExtension = pImageName.substr(dotPos);
@@ -49,7 +65,7 @@ bool CThreadDetector::Detect(){
 	CImageProcessor processor;
 	cv::Mat procImage;
 	CTimeMeasure timeManager;
-	const float binalyzeRate = 0.03f;
+	const float binalyzeRate = c_binalyzeRate;
 	if(mIsDebugMode | mIsPhotoMode) timeManager.StartInput();
 
 	ReadImage(procImage);
@@ -107,7 +123,9 @@ bool CThreadDetector::CheckThread(const cv::Mat& pBinaryImage, const float pDefR
 	cv::findNonZero(pBinaryImage, nonZeroList);
 	const float blackNum = static_cast<float>(nonZeroList.size());
 	const float blackRate = (blackNum / size) / pDefRate;
-	std::cout << "decreaseRate: " << std::setprecision(3) << blackRate*100.f << "% require: 20%" << std::endl;
+	std::cout << "BinalyzeRate: " << std::setprecision(3) << pDefRate*100.f << "%" << std::endl;
+	std::cout << "decreaseRate: " << std::setprecision(3) << blackRate*100.f
+		<< "% require: " << std::setprecision(3) << c_blackRate*100.f << "%" << std::endl;
 	/*if (blackRate < 0.2){
 		std::cout << "      result: NG" << std::endl;
 		return false;
@@ -168,11 +186,12 @@ bool CThreadDetector::CheckThread(const cv::Mat& pBinaryImage, const float pDefR
 	const float thickRatio = len.x * len.y / static_cast<float>(nonZeroList.size());
 	std::cout << "   convRange: " << std::setprecision(7) << len << std::endl;
 	std::cout << "       ratio: " << std::setprecision(3) << ratio
-		<< ", require: >=5" << std::endl;
+		<< ", require: >=" << std::setprecision(3) << c_squareRatio << std::endl;
 	std::cout << "    blackNum: " << std::setprecision(5) << nonZeroList.size() << " /";
 	std::cout << " thick: " << "[" << expectThick << ", " << realThick << "]" << std::endl;
-	std::cout << "  thickRatio: " << std::setprecision(3) << thickRatio << std::endl;
-	if (ratio < 5 || blackRate < 0.2f){
+	std::cout << "  thickRatio: " << std::setprecision(3) << thickRatio
+		<< ", require: <=" << c_thickRatio << std::endl;
+	if (ratio < c_squareRatio || blackRate < c_blackRate || thickRatio > c_thickRatio){
 		std::cout << "      result: NG" << std::endl;
 		return false;
 	}
