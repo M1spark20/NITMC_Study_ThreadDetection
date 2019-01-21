@@ -8,17 +8,20 @@ class CImageProcessor{
 	typedef std::vector<std::pair<cv::Point, int>> LabelData;
 
 public:
-	// [機能]指定範囲のMatをコピーする
+	// [act]指定範囲のMatをコピーする
 	void CopyMatRect(const cv::Mat& pSrc, cv::Mat& pDst, const cv::Rect& pSrcRect, const cv::Rect& pDstRect);
-	// 端点処理を含んだ3x3フィルタ(YPrewitt用)
+	// [act]端点処理を含んだ3x3フィルタ(YPrewitt用)を画像に描ける
 	void Filter3x3(const cv::Mat& pSrcImage, cv::Mat& pDstImage, const cv::Mat& pFilter3x3);
-	// 固定しきい値による2値化
+	// [act]固定しきい値による2値化を行う
 	void BinalyzeThreshold(const cv::Mat& pSrcImage, cv::Mat& pDstImage, int pThrethold);
-	// Pタイル法による2値化
+	// [act]Pタイル法による2値化を行う
 	void BinalyzePTile(const cv::Mat& pSrcImage, cv::Mat& pDstImage, double pBlackRate);
-	// ラベリングを行って面積が最大となる部分のみを抽出
+	// [act]ラベリングを行って面積が最大となる部分のみを抽出する
 	void LaberingMaxSize(const cv::Mat& pSrcImage, cv::Mat& pDstImage);
-	// 拡大縮小処理(false: 縮小 / true: 拡大 | vector配列で指定)
+	
+	// 画像回転処理については、CThreadDetectorクラス内関数にて実装されている
+	
+	// [act]拡大縮小処理(false: 縮小 / true: 拡大 | vector配列で指定) - 不使用になりました
 	//cv::Mat MinimizeExtend(const cv::Mat pBinaryImage, std::queue<bool> pJob);
 
 private:
