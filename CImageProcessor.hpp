@@ -3,8 +3,10 @@
 #pragma once
 #include <opencv2/opencv.hpp>
 
+// [act]撮影画像に対して画像処理を行う
+//		CThreadDetectorクラスから画像を受け取り各関数で必要な処理を行う
+//		本クラスの関数は画像処理に使用されるアルゴリズムが1つずつ実装されている
 class CImageProcessor{
-// [act]
 	typedef std::vector<std::pair<cv::Point, int>> LabelData;
 
 public:
@@ -25,6 +27,9 @@ public:
 	//cv::Mat MinimizeExtend(const cv::Mat pBinaryImage, std::queue<bool> pJob);
 
 private:
+	// [act]LabelDataが整列されていると仮定して、FindForを対象としたマスがdataに存在するか検索する
 	LabelData::reverse_iterator FindLabelRelative(LabelData& data, cv::Point findFor);
+	
+	// [act]ラベリングにおける判定終了後のラベル番号の再割り当てを行う
 	void RefreshLabel(LabelData& data, int srcLabel, int dstLabel, std::vector<int>& pLabelCounter);
 };

@@ -2,6 +2,7 @@
 #include <opencv2/opencv.hpp>
 #include <string>
 
+// クラスの事前宣言
 class CReadConfig;
 
 // [act]撮影画像から緯糸を検出する
@@ -14,9 +15,9 @@ class CReadConfig;
 //			3. 二値画像の黒画素を4近傍の連結成分ごとに分け、面積が最大のもののみを取り出す。
 //			4. 緯糸の太さを算出すために画像回転補正を行う。補正後の連結成分を緯糸候補成分と呼ぶ。
 //		[CheckThread関数] - 直線状の緯糸が存在するかを以下の3つの基準で判定する。
-//			1. ノイズ除去前後の二値画像の黒画素数を比較し、ノイズ除去後に残った黒画素数の割合を算出する: J1
-//			2. 緯糸候補成分の外接長方形の縦横比を算出する: J2
-//			3. 緯糸候補成分の黒画素数と外接長方形の面積の比を算出する: J3
+//			1. ノイズ除去前後の二値画像の黒画素数を比較し、ノイズ除去後に残った黒画素数の割合を算出する: 物体判定J1
+//			2. 緯糸候補成分の外接長方形の縦横比を算出する: 形状判定J2
+//			3. 緯糸候補成分の黒画素数と外接長方形の面積の比を算出する: 蛇行判定J3
 class CThreadDetector{
 	cv::Mat mProcessImage;					// 画像データ格納先
 	std::string mImageFileName;				// 読み込みファイル名
@@ -38,9 +39,12 @@ class CThreadDetector{
 	// [act]画像処理を施した二値画像を評価し緯糸切れ判定を行う。
 	bool CheckThread(const cv::Mat& pBinaryImage, const float pDefRate);
 	
-	// 
+	// [act]列データを入力し、その中に白画素があるか判定を行う
 	float CheckSegment(const cv::Mat& pRowData);
 public:
+	// コンストラクタ
 	CThreadDetector(const std::string pImageName, bool pIsDebugMode, bool pIsPhotoMode, bool pMinisizeFlag, const CReadConfig& pConfig);
+	
+	// [act]画像回転補正および緯糸切れ判定を行う
 	bool Detect();
 };
