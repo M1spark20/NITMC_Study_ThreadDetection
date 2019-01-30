@@ -8,6 +8,8 @@
 using namespace cv;
 // cmdによるシステムの起動方法(複数のファイルを一度に解析することもできる):
 // 実行ファイル名 コンフィグファイル名 起動モードパラメータ(-d/-p) サイズパラメータ1(-s,直後のファイルにのみ適用) 読み込みファイル名1 サイズパラメータ2(-s) 読み込みファイル名2 ...
+// [ret]0以上: 緯糸切れと判定された画像数(1枚の場合0なら正常、1なら緯糸切れ)
+//		   -1: パラメータ設定ミス等の異常終了
 int main(int argc, char** argv)
 {
 	int dataStart = 1;				// 現在のコマンドラインパラメータ読み込み位置
@@ -47,6 +49,7 @@ int main(int argc, char** argv)
 		return -1;
 	}
 
+	int result = 0;
 	// 指定された各画像に対して緯糸切れ検知を行う。
 	// bgrデータの場合、各ファイル名の直前に-sオプションをつけることで320x240サイズの画像を読み込む(デフォルトは640x480)
 	for(; dataStart<argc; ++dataStart){
@@ -54,8 +57,8 @@ int main(int argc, char** argv)
 		if (data == "-s"){ minisizeFlag = true; continue; }
 		std::cout << data << std::endl;
 		CThreadDetector detector(data, debugMode, photoMode, minisizeFlag, config);
-		detector.Detect();
+		result = detector.Detect() ? result : result+1;
 		minisizeFlag = false;
 	}
-	return 0;
+	return result;
 }

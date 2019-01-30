@@ -119,7 +119,7 @@ bool CThreadDetector::Detect(){
 	if (mIsDebugMode) timeManager.GoToNextSection("Y-Prewitt Filter Time");
 
 	// P-タイル法により二値化を行う
-	processor.BinalyzePTile(procImage, procImage, binalyzeRate);
+	const int Na = processor.BinalyzePTile(procImage, procImage, binalyzeRate);
 	// 所要時間を記録する・二値画像を書き出す(bmp形式)
 	if (mIsDebugMode){
 		timeManager.GoToNextSection("P-Tile Time");
@@ -128,7 +128,6 @@ bool CThreadDetector::Detect(){
 	}
 
 	// ラベリングにより最大連結成分のみを取り出してノイズ除去を行う
-	// 内部的にここの画像は連結成分が白色で表現される:findNonZeroを使用するため
 	processor.LaberingMaxSize(procImage, procImage);
 	// 所要時間を記録する・ノイズ除去後の画像を書き出す(bmp形式)
 	if (mIsDebugMode){
@@ -137,9 +136,9 @@ bool CThreadDetector::Detect(){
 		timeManager.GoToNextSection("");
 	}
 
-	// 取り出した連結成分を白画素とする
+	// (20190129 FIX)CheckThread内も緯糸候補成分を黒画素で表現する
 	// 画像回転補正及び緯糸切れ判定を行う
-	bool ans = CheckThread(procImage, binalyzeRate);
+	bool ans = CheckThread(procImage, binalyzeRate, Na);
 	// 所要時間を記録してコンソールに書き出す
 	if (mIsDebugMode){
 		timeManager.GoToNextSection("Detecting Time");
@@ -159,12 +158,16 @@ bool CThreadDetector::Detect(){
 //		この理由は緯糸切れ判定において外接長方形関連で必要となる辺長X,Yは上記データで決定できるためである。
 //		debugModeでのみ実際の回転補正結果を画像に出力する。
 //		その後、得られた外接長方形の辺長X,Yを利用して判定量J2およびJ3を計算し形状判定及び蛇行判定を行う
-// [prm]pBinaryImage	: 判定対象となる二値画像->ラベリングによりノイズ除去を行った二値画像・意味のある画素は白画素
+// [prm]pBinaryImage	: 判定対象となる二値画像->ラベリングによりノイズ除去を行った二値画像・(20190129 FIX)意味のある画素は黒画素
 //		pDefRate		: P-タイル法の二値化閾値[0.0, 1.0]->P-タイル法による二値画像の黒画素数NAを計算するために使用
+//		pNa				: (20190129 ADD)P-タイル法による二値画像の黒画素数(ノイズ除去前)
 // [ret]緯糸が切れていなかったかどうか(true:切れていない, false:切れている)
-bool CThreadDetector::CheckThread(const cv::Mat& pBinaryImage, const float pDefRate){
+bool CThreadDetector::CheckThread(const cv::Mat& pBinaryImage, const float pDefRate, const int pNa){
+	// (20190129 ADD)白画素を抽出できるfindNonZeroを複数回使うため、入力画像を反転させる
+	// 以降の処理はすべて反転結果であるprocImage変数を用いて行う
+	const cv::Mat procImage = cv::Scalar(255) - pBinaryImage;
 	// 判定画像の大きさ[pixel]を取得
-	const cv::Size imageSizeData = pBinaryImage.size();
+	const cv::Size imageSizeData = procImage.size();
 	// 判定画像の面積[pixel^2]を計算
 	const float size = static_cast<float>(imageSizeData.width * imageSizeData.height);
 	// 画像回転補正後二値画像書き出し用変数(debugMode時のみ全画素を白として初期化・使用)
@@ -172,16 +175,16 @@ bool CThreadDetector::CheckThread(const cv::Mat& pBinaryImage, const float pDefR
 	if(mIsDebugMode)
 		debugImage = cv::Mat(imageSizeData, CV_8UC1, cv::Scalar(255));
 
-	// 二値画像の白画素(有意成分)の座標一覧を取得する
+	// 入力二値画像反転後の白画素(有意成分)の座標一覧を取得する
 	// nonZeroListの要素数はそのまま有意画素数となり、黒画素数Nとなる
 	std::vector<cv::Point> nonZeroList;
-	cv::findNonZero(pBinaryImage, nonZeroList);
+	cv::findNonZero(procImage, nonZeroList);
 	
 	// 判定量J1の計算: J1 = N/NA  (緯糸候補成分の黒画素数 / P-タイル法による二値画像の黒画素数)
 	const float blackNum = static_cast<float>(nonZeroList.size());	// N
-	const float blackRate = (blackNum / size) / pDefRate;			// J1 = N/NA
+	const float blackRate = blackNum / (float)pNa;			// J1 = N/NA
 	// 計算条件・判定条件・判定量J1の書き出し
-	std::cout << "BinalyzeRate: " << std::setprecision(3) << pDefRate*100.f << "%" << std::endl;
+	std::cout << "BinarizeRate: " << std::setprecision(3) << pDefRate*100.f << "%" << std::endl;
 	std::cout << "decreaseRate: " << std::setprecision(3) << blackRate*100.f
 		<< "% require: " << std::setprecision(3) << c_blackRate*100.f << "%" << std::endl;
 	// 判定量J1が条件を満たさない場合ここで緯糸切れ判定を出力し判定打ち切りできる:
@@ -199,7 +202,7 @@ bool CThreadDetector::CheckThread(const cv::Mat& pBinaryImage, const float pDefR
 	// 画像左側から中央に向かって走査
 	for (int x = 0; x < imageSizeData.width; ++x){
 		// 画像のうち1列のデータを取得して、y座標の平均値を計算
-		const float yPos = CheckSegment(pBinaryImage.col(x));
+		const float yPos = CheckSegment(procImage.col(x));
 		if (yPos < 0) continue;	// 見つからなかった(yPos=-1.f)場合1つ右の列を参照する
 		// 見つかったら変数に位置を記録する
 		sidePoints[0].x = static_cast<float>(x);
@@ -208,7 +211,7 @@ bool CThreadDetector::CheckThread(const cv::Mat& pBinaryImage, const float pDefR
 	}
 	// 同様に画像右側から中央に向かって走査
 	for (int x = imageSizeData.width-1; x >= 0; --x){
-		const float yPos = CheckSegment(pBinaryImage.col(x));
+		const float yPos = CheckSegment(procImage.col(x));
 		if (yPos < 0) continue;	// 見つからなかった場合1つ左の列を参照する
 		sidePoints[1].x = static_cast<float>(x);
 		sidePoints[1].y = yPos;

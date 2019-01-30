@@ -17,7 +17,7 @@ public:
 	// [act]固定しきい値による2値化を行う
 	void BinalyzeThreshold(const cv::Mat& pSrcImage, cv::Mat& pDstImage, int pThrethold);
 	// [act]Pタイル法による2値化を行う
-	void BinalyzePTile(const cv::Mat& pSrcImage, cv::Mat& pDstImage, double pBlackRate);
+	int  BinalyzePTile(const cv::Mat& pSrcImage, cv::Mat& pDstImage, double pBlackRate);
 	// [act]ラベリングを行って面積が最大となる部分のみを抽出する
 	void LaberingMaxSize(const cv::Mat& pSrcImage, cv::Mat& pDstImage);
 	

@@ -37,7 +37,7 @@ class CThreadDetector{
 	bool ReadImage(cv::Mat& dstImage);
 	
 	// [act]画像処理を施した二値画像を評価し緯糸切れ判定を行う。
-	bool CheckThread(const cv::Mat& pBinaryImage, const float pDefRate);
+	bool CheckThread(const cv::Mat& pBinaryImage, const float pDefRate, const int pNa);
 	
 	// [act]列データを入力し、その中に白画素があるか判定を行う
 	float CheckSegment(const cv::Mat& pRowData);

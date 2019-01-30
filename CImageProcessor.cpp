@@ -68,12 +68,14 @@ void CImageProcessor::Filter3x3(const cv::Mat& pSrcImage, cv::Mat& pDstImage, co
 }
 
 // [act]固定しきい値による2値化
-//		閾値の値の画素は白画素となり意味のない画素となる。
+//		(20190129 FIX)
+//		閾値の値の画素は黒画素となる。
+//		以前のバージョンと比較して物体判定量J1に差異が生じるため注意。
 // [prm]pSrcImage	: 2値化を行う画像(CV_8UC1 -> CV_8UC1に内部変換)
 //		pDstImage	: 二値化を行った画像(CV_8UC1)
 //		pThreshold	: 黒画素とする比率 range->[0.0, 1.0] この値を超えない最大の比率が黒画素比率となる
 void CImageProcessor::BinalyzeThreshold(const cv::Mat& pSrcImage, cv::Mat& pDstImage, int pThrethold){
-	cv::Mat processData = pSrcImage <= pThrethold;
+	cv::Mat processData = pSrcImage < pThrethold;
 	processData.copyTo(pDstImage);
 }
 
@@ -83,7 +85,7 @@ void CImageProcessor::BinalyzeThreshold(const cv::Mat& pSrcImage, cv::Mat& pDstI
 //		pDstImage	: 二値化を行った画像(CV_8UC1)
 //		pBlackRate	: 黒画素とする比率 range->[0.0, 1.0]
 // [ret]実際に書き出された二値画像の黒画素数(pBlackRateで指定された割合の黒画素数未満の値となる)
-void CImageProcessor::BinalyzePTile(const cv::Mat& pSrcImage, cv::Mat& pDstImage, double pBlackRate){
+int CImageProcessor::BinalyzePTile(const cv::Mat& pSrcImage, cv::Mat& pDstImage, double pBlackRate){
 	// CV_8UC1に変換
 	cv::Mat processData;
 	pSrcImage.convertTo(processData, CV_8UC1);
@@ -105,13 +107,15 @@ void CImageProcessor::BinalyzePTile(const cv::Mat& pSrcImage, cv::Mat& pDstImage
 	int bCheck = 0;
 	for (int th = 255; th >= 0; --th){
 		bCheck += static_cast<int>( hist.at<float>(th) );
-		if (bCheck - order >= 0){
+		if (bCheck >= order){
 			std::cout << "Image Size: " << s.width << " * " << s.height << "\n";
 			std::cout << "Pixels Purpose: " << order << ", Black Pixels: " << bCheck << ", Threshold: " << th << "\n";
 			BinalyzeThreshold(processData, pDstImage, th);
-			return;
+			return bCheck;
 		}
 	}
+	// 二値化が行われなかった場合0を返す
+	return 0;
 }
 
 // [act]ラベリングを行って面積が最大となる部分のみを抽出
@@ -195,8 +199,8 @@ void CImageProcessor::LaberingMaxSize(const cv::Mat& pSrcImage, cv::Mat& pDstIma
 	// debug出力用
 	/*std::ofstream ofs("sift.csv");
 	ofs << cv::format(label, "csv") << std::endl;*/
-	// 出力先に白黒を反転させて書き出す: 連結成分が白色で表現される
-	out = cv::Scalar(255) - out;
+
+	// 連結成分は黒色画素で表現される
 	out.convertTo(pDstImage, CV_8UC1);
 }
 
